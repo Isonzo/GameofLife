@@ -88,6 +88,8 @@ int main(void)
             }
         if (!playingSim) DrawText("Click to place cells\nPress 'G' to start", 
                                  WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
+        else if (playingSim) DrawText("Press 'G' to stop", 
+                                 WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
         EndDrawing();
     }
 
