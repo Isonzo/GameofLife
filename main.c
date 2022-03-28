@@ -14,17 +14,13 @@ typedef struct
 
 void DrawBlock(Cell* cell, int x, int y);
 void ProcessBlock(Cell** cells, int x, int y);
-void ApplyStates(Cell* cell, int x, int y);
-bool works = false;
+void ApplyStates(Cell* cell);
 
 int main(void)
 {
     InitWindow(WIDTH, HEIGHT, "Conway's Game of Life");
     SetTargetFPS(20);
     unsigned int fpsCounter = 0;
-
-    Cell cell;
-    cell.isDead = false;
 
     bool playingSim = false;
 
@@ -74,7 +70,7 @@ int main(void)
         for (int i = 0; i < WIDTH/FACTOR; ++i)
             for (int j = 0; j < HEIGHT/FACTOR; ++j)
             {
-                ApplyStates(&cells[i][j], i, j);
+                ApplyStates(&cells[i][j]);
             }
         }
 
@@ -115,11 +111,6 @@ void ProcessBlock(Cell** cells, int x, int y)
             if (y + j < 0 || y + j >= HEIGHT/FACTOR) continue;
             if (!cells[x + i][y + j].isDead) ++livingCells;
         }
-    if (livingCells > 0)
-    {
-        works = true;
-    }
-    
     // Enact Conway's Law and mark their future
     Cell* cell = &cells[x][y];
     if (!cell->isDead && (livingCells == 2 || livingCells == 3)) cell->state = unchanged;
@@ -127,7 +118,7 @@ void ProcessBlock(Cell** cells, int x, int y)
     if (!cell->isDead && (livingCells > 3 || livingCells < 2)) cell->state = dying;
 }
 
-void ApplyStates(Cell* cell, int x, int y)
+void ApplyStates(Cell* cell)
 {
     switch (cell->state)
     {
