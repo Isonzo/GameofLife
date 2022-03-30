@@ -66,30 +66,39 @@ int main(void)
         }
         else 
         {
-        for (int i = 0; i < WIDTH/FACTOR; ++i)
-            for (int j = 0; j < HEIGHT/FACTOR; ++j)
+            for (int i = 0; i < WIDTH/FACTOR; ++i)
             {
-                ProcessBlock(cells, i, j);
+                for (int j = 0; j < HEIGHT/FACTOR; ++j)
+                {
+                    ProcessBlock(cells, i, j);
+                }
             }
-        for (int i = 0; i < WIDTH/FACTOR; ++i)
-            for (int j = 0; j < HEIGHT/FACTOR; ++j)
+            for (int i = 0; i < WIDTH/FACTOR; ++i)
             {
-                ApplyStates(&cells[i][j], i, j);
+                for (int j = 0; j < HEIGHT/FACTOR; ++j)
+                {
+                    ApplyStates(&cells[i][j], i, j);
+                }
             }
         }
-
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
         for (int i = 0; i < WIDTH/FACTOR; ++i)
+        {
             for (int j = 0; j < HEIGHT/FACTOR; ++j)
             {
                 DrawBlock(&cells[i][j], i * FACTOR, j * FACTOR);
             }
-        if (!playingSim) DrawText("Click to place cells\nPress 'G' to start", 
-                                 WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
-        else if (playingSim) DrawText("Press 'G' to stop", 
-                                 WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
+        }
+        if (!playingSim)
+        {
+            DrawText("Click to place cells\nPress 'G' to start", WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
+        }
+        else
+        {
+            DrawText("Press 'G' to stop", WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
+        }
         EndDrawing();
     }
 
@@ -108,6 +117,7 @@ void ProcessBlock(Cell** cells, int x, int y)
     // Calculate surrounding cells
     int livingCells = 0;
     for (int i = -1; i < 2; ++i)
+    {
         for (int j = -1; j < 2; ++j)
         {
             if (i == 0 && j == 0) continue;
@@ -115,6 +125,7 @@ void ProcessBlock(Cell** cells, int x, int y)
             if (y + j < 0 || y + j >= HEIGHT/FACTOR) continue;
             if (!cells[x + i][y + j].isDead) ++livingCells;
         }
+    }
     if (livingCells > 0)
     {
         works = true;
