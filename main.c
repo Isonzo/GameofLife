@@ -5,6 +5,10 @@
 #define WIDTH 800
 #define HEIGHT 450
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 typedef struct {
   bool isDead;
   enum { unchanged, dying, birthing } state;
@@ -13,17 +17,18 @@ typedef struct {
 void DrawBlock(Cell *cell, int x, int y);
 void ProcessBlock(Cell **cells, int x, int y);
 void ApplyStates(Cell *cell);
+void UpdateFrame(void);
+
+Cell **cells;
+unsigned int fpsCounter = 0;
+bool playingSim = false;
 
 int main(void) {
   InitWindow(WIDTH, HEIGHT, "Conway's Game of Life");
   SetTargetFPS(20);
-  unsigned int fpsCounter = 0;
-
-  bool playingSim = false;
 
   // Make Cell Matrix
-
-  Cell **cells = malloc(WIDTH / FACTOR * sizeof(Cell *));
+  cells = malloc(WIDTH / FACTOR * sizeof(Cell *));
 
   for (int i = 0; i < WIDTH / FACTOR; ++i) {
     cells[i] = malloc(sizeof(Cell) * HEIGHT / FACTOR);
@@ -33,52 +38,17 @@ int main(void) {
     }
   }
 
+#ifdef __EMSCRIPTEN__
+  // emscripten_set_main_loop(Function, FPS, simulate_infinite_loop)
+  emscripten_set_main_loop(UpdateFrame, 20, 1);
+#else
+  SetTargetFPS(20);
   while (!WindowShouldClose()) {
-    if (fpsCounter < 40) {
-      ShowMenu(WIDTH, HEIGHT);
-      ++fpsCounter;
-      continue;
-    }
-    if (IsKeyPressed(KEY_G)) {
-      playingSim = !playingSim;
-    }
-
-    if (!playingSim) {
-      if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 mousePos = GetMousePosition();
-        cells[(int)mousePos.x / FACTOR][(int)mousePos.y / FACTOR].isDead =
-            !cells[(int)mousePos.x / FACTOR][(int)mousePos.y / FACTOR].isDead;
-      }
-    } else {
-      for (int i = 0; i < WIDTH / FACTOR; ++i) {
-        for (int j = 0; j < HEIGHT / FACTOR; ++j) {
-          ProcessBlock(cells, i, j);
-        }
-      }
-      for (int i = 0; i < WIDTH / FACTOR; ++i) {
-        for (int j = 0; j < HEIGHT / FACTOR; ++j) {
-          ApplyStates(&cells[i][j]);
-        }
-      }
-    }
-
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-    for (int i = 0; i < WIDTH / FACTOR; ++i) {
-      for (int j = 0; j < HEIGHT / FACTOR; ++j) {
-        DrawBlock(&cells[i][j], i * FACTOR, j * FACTOR);
-      }
-    }
-    if (!playingSim) {
-      DrawText("Click to place cells\nPress 'G' to start", WIDTH / 2 - 100,
-               HEIGHT / 2, 20, LIGHTGRAY);
-    } else {
-      DrawText("Press 'G' to stop", WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
-    }
-    EndDrawing();
+    UpdateFrame();
   }
-
   CloseWindow();
+
+#endif
   return 0;
 }
 
@@ -125,4 +95,51 @@ void ApplyStates(Cell *cell) {
   case unchanged:
     break;
   }
+}
+
+void UpdateFrame(void) {
+  if (fpsCounter < 40) {
+    ShowMenu(WIDTH, HEIGHT);
+    ++fpsCounter;
+    return;
+  }
+
+  if (IsKeyPressed(KEY_G)) {
+    playingSim = !playingSim;
+  }
+
+  if (!playingSim) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+      Vector2 mousePos = GetMousePosition();
+      cells[(int)mousePos.x / FACTOR][(int)mousePos.y / FACTOR].isDead =
+          !cells[(int)mousePos.x / FACTOR][(int)mousePos.y / FACTOR].isDead;
+    }
+  } else {
+    for (int i = 0; i < WIDTH / FACTOR; ++i) {
+      for (int j = 0; j < HEIGHT / FACTOR; ++j) {
+        ProcessBlock(cells, i, j);
+      }
+    }
+    for (int i = 0; i < WIDTH / FACTOR; ++i) {
+      for (int j = 0; j < HEIGHT / FACTOR; ++j) {
+        ApplyStates(&cells[i][j]);
+      }
+    }
+  }
+
+  BeginDrawing();
+  ClearBackground(RAYWHITE);
+  for (int i = 0; i < WIDTH / FACTOR; ++i) {
+    for (int j = 0; j < HEIGHT / FACTOR; ++j) {
+      DrawBlock(&cells[i][j], i * FACTOR, j * FACTOR);
+    }
+  }
+
+  if (!playingSim) {
+    DrawText("Click to place cells\nPress 'G' to start", WIDTH / 2 - 100,
+             HEIGHT / 2, 20, LIGHTGRAY);
+  } else {
+    DrawText("Press 'G' to stop", WIDTH / 2 - 100, HEIGHT / 2, 20, LIGHTGRAY);
+  }
+  EndDrawing();
 }
