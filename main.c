@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "raylib.h"
+#include <stdint.h>
 #include <stdlib.h>
 #define FACTOR 25
 #define WIDTH 800
@@ -9,10 +10,15 @@
 #include <emscripten.h>
 #endif
 
+enum { UNCHANGED, DYING, BIRTHING };
+
 typedef struct {
-  bool isDead;
-  enum { unchanged, dying, birthing } state;
+  uint8_t state : 2;
+  uint8_t isDead : 1;
+  uint8_t age : 5; // 32 numbers
 } Cell;
+
+_Static_assert(sizeof(Cell) == 1, "Cell should be 1 byte");
 
 void DrawBlock(Cell *cell, int x, int y);
 void ProcessBlock(Cell **cells, int x, int y);
@@ -34,7 +40,7 @@ int main(void) {
     cells[i] = malloc(sizeof(Cell) * HEIGHT / FACTOR);
     for (int j = 0; j < HEIGHT / FACTOR; ++j) {
       cells[i][j].isDead = true;
-      cells[i][j].state = unchanged;
+      cells[i][j].state = UNCHANGED;
     }
   }
 
@@ -55,8 +61,12 @@ int main(void) {
 void DrawBlock(Cell *cell, int x, int y) {
   if (cell->isDead)
     DrawRectangle(x, y, FACTOR, FACTOR, RAYWHITE);
-  else
-    DrawRectangle(x, y, FACTOR, FACTOR, BLACK);
+  else {
+    uint8_t shade = (uint8_t)((cell->age * 160) / 31);
+    Color agedColor = {shade, shade, shade, 255};
+
+    DrawRectangle(x, y, FACTOR, FACTOR, agedColor);
+  }
 }
 
 void ProcessBlock(Cell **cells, int x, int y) {
@@ -77,22 +87,25 @@ void ProcessBlock(Cell **cells, int x, int y) {
   // Enact Conway's Law and mark their future
   Cell *cell = &cells[x][y];
   if (!cell->isDead && (livingCells == 2 || livingCells == 3))
-    cell->state = unchanged;
+    cell->state = UNCHANGED;
   if (cell->isDead && livingCells == 3)
-    cell->state = birthing;
+    cell->state = BIRTHING;
   if (!cell->isDead && (livingCells > 3 || livingCells < 2))
-    cell->state = dying;
+    cell->state = DYING;
 }
 
 void ApplyStates(Cell *cell) {
   switch (cell->state) {
-  case birthing:
+  case BIRTHING:
     cell->isDead = false;
+    cell->age = 0;
     break;
-  case dying:
+  case DYING:
     cell->isDead = true;
     break;
-  case unchanged:
+  case UNCHANGED:
+    if (!cell->isDead && cell->age < 31)
+      cell->age++;
     break;
   }
 }
@@ -111,8 +124,11 @@ void UpdateFrame(void) {
   if (!playingSim) {
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
       Vector2 mousePos = GetMousePosition();
-      cells[(int)mousePos.x / FACTOR][(int)mousePos.y / FACTOR].isDead =
-          !cells[(int)mousePos.x / FACTOR][(int)mousePos.y / FACTOR].isDead;
+      Cell *clickedCell =
+          &cells[(int)mousePos.x / FACTOR][(int)mousePos.y / FACTOR];
+
+      clickedCell->isDead = !clickedCell->isDead;
+      clickedCell->age = 0;
     }
   } else {
     for (int i = 0; i < WIDTH / FACTOR; ++i) {
